@@ -1,6 +1,6 @@
 # 🔥 Firecrawl CLI
 
-Command-line interface for Firecrawl. Search, scrape, and interact with the web directly from your terminal.
+Command-line interface for Firecrawl. Search, scrape, interact, crawl, map, and run agent jobs directly from your terminal.
 
 ## Installation
 
@@ -20,7 +20,7 @@ npx -y firecrawl-cli@1.16.2 init -y --browser
 
 ### Setup Skills and MCP
 
-If you are using an AI coding agent like Claude Code, you can also install the skill individually with:
+If you are using an AI coding agent like Claude Code, you can also install the skills manually with:
 
 ```bash
 firecrawl setup skills
@@ -32,7 +32,7 @@ This installs skills globally across all detected coding editors by default. Use
 
 The init command installs both sets of Firecrawl agent skills into AI coding agents (Cursor, Claude Code, Windsurf, etc.):
 
-- **CLI skills** — teach agents how to use the Firecrawl CLI for live web work (search, scrape, interact, map, crawl)
+- **CLI skills** — teach agents how to use the Firecrawl CLI for live web work (search, scrape, interact, map, crawl, agent)
 - **Build skills** — teach agents how to integrate Firecrawl into application code (choose endpoints, wire SDKs, set up API keys)
 
 To reinstall skills manually:
