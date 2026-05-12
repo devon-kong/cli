@@ -125,8 +125,8 @@ function fail(error: unknown): never {
 /**
  * Build the request body for `monitor create` from CLI flags.
  *
- * Power users can pass `--body @payload.json` for full control. The flags
- * cover the common scrape-target shape.
+ * For full control, callers can pass a JSON file path positionally or pipe
+ * JSON on stdin instead. The flags cover the common scrape-target shape.
  */
 function buildCreateBody(opts: {
   name?: string;
@@ -141,7 +141,7 @@ function buildCreateBody(opts: {
   retentionDays?: number;
 }): unknown {
   if (!opts.name) {
-    throw new Error('--name is required (or pass --body @file.json)');
+    throw new Error('--name is required (or pass a JSON file / stdin payload)');
   }
   if (!opts.cron && !opts.scheduleText) {
     throw new Error('--cron or --schedule is required');
