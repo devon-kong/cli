@@ -305,7 +305,7 @@ export function createMonitorCommand(): Command {
       .option('--cron <expression>', 'New cron schedule')
       .option('--schedule <text>', 'New natural-language schedule')
       .option('--timezone <tz>', 'Schedule timezone')
-      .option('--status <state>', 'active | paused')
+      .option('--state <state>', 'active | paused')
       .option('--retention-days <n>', 'Snapshot retention window', parseInt)
       .option(
         '--body <json|@file>',
@@ -319,7 +319,7 @@ export function createMonitorCommand(): Command {
       } else {
         body = {};
         if (options.name) body.name = options.name;
-        if (options.status) body.status = options.status;
+        if (options.state) body.status = options.state;
         if (options.retentionDays !== undefined)
           body.retentionDays = options.retentionDays;
         if (options.cron || options.schedule || options.timezone) {
@@ -415,7 +415,7 @@ export function createMonitorCommand(): Command {
       .option('--limit <n>', 'Max page results', parseInt)
       .option('--skip <n>', 'Skip page results', parseInt)
       .option(
-        '--status <state>',
+        '--page-status <state>',
         'Filter page results: same, new, changed, removed, error'
       )
   ).action(async (monitorId, checkId, options) => {
@@ -427,7 +427,7 @@ export function createMonitorCommand(): Command {
           query: {
             limit: options.limit,
             skip: options.skip,
-            status: options.status,
+            status: options.pageStatus,
           },
         }
       );
@@ -448,10 +448,10 @@ Examples:
   $ firecrawl monitor create --body @monitor.json
   $ firecrawl monitor list --limit 20
   $ firecrawl monitor get mon_abc123
-  $ firecrawl monitor update mon_abc123 --status paused
+  $ firecrawl monitor update mon_abc123 --state paused
   $ firecrawl monitor run mon_abc123
   $ firecrawl monitor checks mon_abc123 --limit 10
-  $ firecrawl monitor check mon_abc123 chk_xyz --status changed
+  $ firecrawl monitor check mon_abc123 chk_xyz --page-status changed
 `
   );
 
