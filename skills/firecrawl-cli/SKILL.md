@@ -13,7 +13,7 @@ Search, scrape, and interact with the web. Returns clean markdown optimized for 
 
 Run `firecrawl --help` or `firecrawl <command> --help` for full option details.
 
-If the task is to integrate Firecrawl into an application, add `FIRECRAWL_API_KEY` to a project, or choose endpoint usage in product code, use the `firecrawl-build` skills. They are already installed alongside this CLI skill when you run `firecrawl init`.
+If the task is to integrate Firecrawl into an application, add `FIRECRAWL_API_KEY` to a project, or choose endpoint usage in product code, use the `firecrawl-build` skills. If the task is an outcome workflow such as deep research, SEO audit, QA, lead generation, knowledge-base creation, dashboard reporting, shopping research, or website design-system extraction, use the `firecrawl-workflows` skills. They are already installed alongside this CLI skill when you run `firecrawl init`.
 
 ## Prerequisites
 
@@ -180,6 +180,7 @@ Use `modes: ["json", "git-diff"]` for **mixed mode**: you get both `diff.json` (
 - **Install, auth, or setup problems** -> [rules/install.md](rules/install.md)
 - **Output handling and safe file-reading patterns** -> [rules/security.md](rules/security.md)
 - **Integrating Firecrawl into an app, adding `FIRECRAWL_API_KEY` to `.env`, or choosing endpoint usage in product code** -> use the `firecrawl-build` skills (already installed alongside this CLI skill)
+- **Producing Firecrawl-powered deliverables such as research briefs, SEO audits, QA reports, lead lists, knowledge bases, or design-system extraction** -> use the `firecrawl-workflows` skills (already installed alongside this CLI skill). These skills infer from context first and ask only short blocking questions when needed.
 
 ## Output & Organization
 
@@ -218,6 +219,25 @@ jq -r '.data.web[].url' .firecrawl/search.json
 # Get titles and URLs
 jq -r '.data.web[] | "\(.title): \(.url)"' .firecrawl/search.json
 ```
+
+## After search: send feedback (refunds 1 credit)
+
+Search costs 2 credits per call. **After you finish using a search result**, send structured feedback in the background. The first feedback per search id refunds 1 credit and feeds search-quality improvements.
+
+```bash
+SEARCH_ID=$(jq -r '.id' .firecrawl/search-react-hooks.json)
+
+firecrawl search-feedback "$SEARCH_ID" \
+  --rating good \
+  --valuable-sources '[{"url":"https://react.dev/reference/react/hooks","reason":"Authoritative"}]' \
+  --missing-content '[{"topic":"useDeferredValue example"},{"topic":"Server Components hooks"}]' \
+  --query-suggestions "Boost react.dev for react-hooks queries" \
+  --silent &
+```
+
+The most useful field is `--missing-content`: an _array_ of specific pieces of content you expected to find but didn't. Use one entry per missing topic. Bad/partial feedback with detailed `--missing-content` is just as valuable as good feedback.
+
+**Opt out:** `export FIRECRAWL_NO_SEARCH_FEEDBACK=1` makes the CLI skip every feedback call silently. Respect that flag — do not try to work around it. See [firecrawl-search](../firecrawl-search/SKILL.md) for the full pattern.
 
 ## Parallelization
 

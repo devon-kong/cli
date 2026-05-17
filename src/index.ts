@@ -20,6 +20,12 @@ import { handleMapCommand } from './commands/map';
 import { handleParseCommand } from './commands/parse';
 import { createMonitorCommand } from './commands/monitor';
 import { handleSearchCommand } from './commands/search';
+import {
+  handleSearchFeedbackCommand,
+  parseValuableSourcesArg,
+  parseMissingContentArg,
+  type SearchFeedbackRating,
+} from './commands/search-feedback';
 import { handleAgentCommand } from './commands/agent';
 import {
   handleBrowserLaunch,
@@ -49,11 +55,6 @@ import packageJson from '../package.json';
 import type { SearchSource, SearchCategory } from './types/search';
 import type { ScrapeFormat } from './types/scrape';
 import type { AgentWebhookConfig } from '@mendable/firecrawl-js';
-import {
-  createClaudeCommand,
-  createCodexCommand,
-  createOpenCodeCommand,
-} from './commands/experimental';
 import { createCreateCommand } from './commands/create';
 
 // Initialize global configuration from environment variables
@@ -67,6 +68,7 @@ const AUTH_REQUIRED_COMMANDS = [
   'map',
   'parse',
   'search',
+  'search-feedback',
   'agent',
   'browser',
   'interact',
@@ -998,6 +1000,88 @@ function createSearchCommand(): Command {
 }
 
 /**
+ * Create the search-feedback command. Used by agents (CLI, MCP, skills) to
+ * report search-result quality after a `firecrawl search` call. The first
+ * feedback per search id refunds 1 credit (search costs 2). Re-submitting
+ * for the same search id is a no-op refund-wise.
+ */
+function createSearchFeedbackCommand(): Command {
+  const cmd = new Command('search-feedback')
+    .description(
+      'Send feedback on a previous search result. Refunds 1 credit on first submission.'
+    )
+    .argument('<searchId>', 'The id returned by `firecrawl search ... --json`')
+    .requiredOption('--rating <rating>', 'Overall rating: good | bad | partial')
+    .option(
+      '--valuable-sources <urlsOrJson>',
+      'Comma-separated URLs OR JSON array of {url, reason} entries'
+    )
+    .option(
+      '--missing-content <topicsOrJson...>',
+      'Specific pieces of content missing from results. ' +
+        'Accepts: JSON array of {topic, description} objects, ' +
+        'comma-separated topics ("pricing tiers, api rate limits"), ' +
+        'or "topic: description" form. Repeat the flag for multiple entries.'
+    )
+    .option(
+      '--query-suggestions <text>',
+      'How the query or result set could be improved'
+    )
+    .option(
+      '-k, --api-key <key>',
+      'Firecrawl API key (overrides global --api-key)'
+    )
+    .option('--api-url <url>', 'API URL (overrides global --api-url)')
+    .option('-o, --output <path>', 'Output file path (default: stdout)')
+    .option('--json', 'Output as compact JSON', false)
+    .option('--pretty', 'Pretty print JSON output', false)
+    .option(
+      '--silent',
+      'Suppress output; useful when called in the background by another agent',
+      false
+    )
+    .action(async (searchId: string, options: any) => {
+      const rating = String(options.rating || '').toLowerCase();
+      if (!['good', 'bad', 'partial'].includes(rating)) {
+        console.error('Error: --rating must be one of: good, bad, partial');
+        process.exit(1);
+      }
+
+      let valuableSources;
+      try {
+        valuableSources = parseValuableSourcesArg(options.valuableSources);
+      } catch (error: any) {
+        console.error('Error:', error?.message || 'Invalid --valuable-sources');
+        process.exit(1);
+      }
+
+      let missingContent;
+      try {
+        missingContent = parseMissingContentArg(options.missingContent);
+      } catch (error: any) {
+        console.error('Error:', error?.message || 'Invalid --missing-content');
+        process.exit(1);
+      }
+
+      await handleSearchFeedbackCommand({
+        searchId,
+        rating: rating as SearchFeedbackRating,
+        valuableSources,
+        missingContent,
+        querySuggestions: options.querySuggestions,
+        apiKey: options.apiKey,
+        apiUrl: options.apiUrl,
+        output: options.output,
+        json: options.json,
+        pretty: options.pretty,
+        silent: options.silent,
+      });
+    });
+
+  return cmd;
+}
+
+/**
  * Create and configure the agent command
  */
 function createAgentCommand(): Command {
@@ -1578,6 +1662,7 @@ program.addCommand(createMapCommand());
 program.addCommand(createParseCommand());
 program.addCommand(createMonitorCommand());
 program.addCommand(createSearchCommand());
+program.addCommand(createSearchFeedbackCommand());
 program.addCommand(createAgentCommand());
 program.addCommand(createInteractCommand());
 
@@ -1589,9 +1674,9 @@ program.addCommand(createBrowserCommand(), { hidden: true });
 // visible by removing `{ hidden: true }`.
 program.addCommand(createCreateCommand(), { hidden: true });
 
-// Experimental: download, AI workflow commands
+// Experimental: download command
 const experimental = new Command('experimental')
-  .description('Experimental commands (download, AI workflows)')
+  .description('Experimental commands (download)')
   .alias('x')
   .addHelpText(
     'after',
@@ -1600,9 +1685,6 @@ Shorthand: "firecrawl x" is an alias for "firecrawl experimental".
 `
   );
 experimental.addCommand(createDownloadCommand());
-experimental.addCommand(createClaudeCommand());
-experimental.addCommand(createCodexCommand());
-experimental.addCommand(createOpenCodeCommand());
 program.addCommand(experimental);
 
 program
@@ -1720,8 +1802,10 @@ program
 
 program
   .command('setup')
-  .description('Set up individual firecrawl integrations (skills, mcp)')
-  .argument('<subcommand>', 'What to set up: "skills" or "mcp"')
+  .description(
+    'Set up individual firecrawl integrations (skills, workflows, mcp)'
+  )
+  .argument('<subcommand>', 'What to set up: "skills", "workflows", or "mcp"')
   .option('-g, --global', 'Install globally (user-level)')
   .option('-a, --agent <agent>', 'Install to a specific agent')
   .action(async (subcommand: SetupSubcommand, options) => {
