@@ -143,6 +143,7 @@ function buildCreateBody(opts: {
   webhookEvents?: string[];
   emailRecipients?: string[];
   retentionDays?: number;
+  goal?: string;
 }): unknown {
   if (!opts.name) {
     throw new Error('--name is required (or pass a JSON file / stdin payload)');
@@ -190,6 +191,7 @@ function buildCreateBody(opts: {
   }
 
   if (opts.retentionDays !== undefined) body.retentionDays = opts.retentionDays;
+  if (opts.goal !== undefined) body.goal = opts.goal;
 
   return body;
 }
@@ -247,6 +249,10 @@ export function createMonitorCommand(): Command {
         parseCommaList
       )
       .option('--retention-days <n>', 'Snapshot retention window', parseInt)
+      .option(
+        '--goal <text>',
+        'Plain-language goal for the AI change judge (auto-enables the judge)'
+      )
   ).action(async (file: string | undefined, options) => {
     try {
       const fromJson = await readJsonPayload(file);
@@ -263,6 +269,7 @@ export function createMonitorCommand(): Command {
           webhookEvents: options.webhookEvents,
           emailRecipients: options.email,
           retentionDays: options.retentionDays,
+          goal: options.goal,
         });
       const payload = await monitorRequest('/monitor', options, {
         method: 'POST',
