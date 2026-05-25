@@ -89,6 +89,13 @@ firecrawl monitor create --name "Product pages" --schedule "every 30 minutes" \
   --goal "Notify me when pricing, docs, or changelog content changes" \
   --scrape-urls https://example.com/pricing,https://example.com/docs,https://example.com/changelog
 
+# webhook notifications
+firecrawl monitor create --name "Docs webhook" --schedule "every 30 minutes" \
+  --goal "Notify me when docs content changes" \
+  --page https://example.com/docs \
+  --webhook-url https://example.com/webhook \
+  --webhook-events monitor.page,monitor.check.completed
+
 # or from JSON (positional file, or piped stdin)
 firecrawl monitor create monitor.json
 cat monitor.json | firecrawl monitor create
