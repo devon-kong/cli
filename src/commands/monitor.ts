@@ -179,8 +179,6 @@ export function buildCreateBody(opts: {
     targets,
   };
 
-  if (opts.goal) body.goal = opts.goal;
-
   if (opts.webhookUrl) {
     body.webhook = {
       url: opts.webhookUrl,
@@ -234,7 +232,6 @@ export function createMonitorCommand(): Command {
         'Path to JSON payload (use "-" or pipe stdin to read from stdin)'
       )
       .option('--name <name>', 'Monitor name')
-      .option('--goal <goal>', 'What changes this monitor should look for')
       .option('--cron <expression>', 'Cron schedule (e.g. "*/30 * * * *")')
       .option(
         '--schedule <text>',
