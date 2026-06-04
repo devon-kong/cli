@@ -220,6 +220,9 @@ function printNextSteps(skillCount: number | null): void {
     `  ${arrow} ${dim}Add MCP:     ${reset} ${bold}firecrawl setup mcp${reset}`
   );
   console.log(
+    `  ${arrow} ${dim}Default web:${reset} ${bold}firecrawl setup defaults${reset}`
+  );
+  console.log(
     `  ${arrow} ${dim}All commands:${reset} ${bold}firecrawl --help${reset}`
   );
   console.log('');

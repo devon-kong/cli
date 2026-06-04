@@ -50,6 +50,19 @@ To install the Firecrawl MCP server into your editors (Cursor, Claude Code, VS C
 firecrawl setup mcp
 ```
 
+To make Firecrawl the default web provider for supported AI agents:
+
+```bash
+firecrawl setup defaults
+```
+
+This disables native web fetch/search where supported so agents route web work
+through Firecrawl. To undo those config changes:
+
+```bash
+firecrawl setup defaults --undo
+```
+
 ## Quick Start
 
 Just run a command - the CLI will prompt you to authenticate if needed:

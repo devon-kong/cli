@@ -12,12 +12,14 @@ import {
   WORKFLOW_SKILL_REPOS,
 } from './skills-install';
 import { hasNpx, installSkillsNative } from './skills-native';
+import { configureWebDefaults } from '../utils/web-defaults';
 
-export type SetupSubcommand = 'skills' | 'workflows' | 'mcp';
+export type SetupSubcommand = 'skills' | 'workflows' | 'mcp' | 'defaults';
 
 export interface SetupOptions {
   global?: boolean;
   agent?: string;
+  undo?: boolean;
 }
 
 /**
@@ -37,6 +39,9 @@ export async function handleSetupCommand(
     case 'mcp':
       await installMcp(options);
       break;
+    case 'defaults':
+      await setupDefaults(options);
+      break;
     default:
       console.error(`Unknown setup subcommand: ${subcommand}`);
       console.log('\nAvailable subcommands:');
@@ -49,7 +54,29 @@ export async function handleSetupCommand(
       console.log(
         '  mcp        Install firecrawl MCP server into editors (Cursor, Claude Code, VS Code, etc.)'
       );
+      console.log(
+        '  defaults   Make Firecrawl the default web provider for supported AI agents'
+      );
       process.exit(1);
+  }
+}
+
+async function setupDefaults(options: SetupOptions): Promise<void> {
+  const results = await configureWebDefaults({ undo: options.undo });
+
+  for (const result of results) {
+    const prefix = result.skipped ? '!' : result.changed ? '✓' : '•';
+    console.log(`${prefix} ${result.message}`);
+    console.log(`  ${result.path}`);
+  }
+
+  console.log('');
+  if (options.undo) {
+    console.log('Native web tools restored where supported.');
+  } else {
+    console.log(
+      'Firecrawl is now the default web provider for supported AI agents.'
+    );
   }
 }
 
