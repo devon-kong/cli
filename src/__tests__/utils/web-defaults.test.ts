@@ -93,4 +93,30 @@ describe('configureWebDefaults', () => {
     });
     expect(await read('.codex/config.toml')).toBe('model = "gpt-5"\n');
   });
+
+  it('writes Codex web_search at the root before TOML tables', async () => {
+    await write(
+      '.codex/config.toml',
+      'model = "gpt-5"\n\n[mcp_servers.firecrawl]\ncommand = "npx"\n'
+    );
+
+    await configureWebDefaults();
+
+    expect(await read('.codex/config.toml')).toBe(
+      'model = "gpt-5"\n\nweb_search = "disabled"\n[mcp_servers.firecrawl]\ncommand = "npx"\n'
+    );
+  });
+
+  it('does not undo table-local Codex web_search settings', async () => {
+    await write(
+      '.codex/config.toml',
+      'model = "gpt-5"\n\n[profiles.research]\nweb_search = "disabled"\n'
+    );
+
+    await configureWebDefaults({ undo: true });
+
+    expect(await read('.codex/config.toml')).toBe(
+      'model = "gpt-5"\n\n[profiles.research]\nweb_search = "disabled"\n'
+    );
+  });
 });

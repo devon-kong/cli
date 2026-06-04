@@ -63,23 +63,25 @@ async function configureClaudeDefaults(
     config.permissions && typeof config.permissions === 'object'
       ? (config.permissions as Record<string, unknown>)
       : {};
-  const deny = Array.isArray(permissions.deny)
-    ? permissions.deny.filter(
-        (value): value is string => typeof value === 'string'
-      )
-    : [];
+  const deny = Array.isArray(permissions.deny) ? [...permissions.deny] : [];
 
-  let nextDeny: string[];
+  let nextDeny: unknown[];
   const denyTools = new Set<string>(CLAUDE_DENY_TOOLS);
   if (undo) {
-    nextDeny = deny.filter((tool) => !denyTools.has(tool));
+    nextDeny = deny.filter(
+      (tool) => typeof tool !== 'string' || !denyTools.has(tool)
+    );
   } else {
-    nextDeny = Array.from(new Set([...deny, ...CLAUDE_DENY_TOOLS]));
+    const existing = new Set(
+      deny.filter((tool): tool is string => typeof tool === 'string')
+    );
+    nextDeny = [...deny];
+    for (const tool of CLAUDE_DENY_TOOLS) {
+      if (!existing.has(tool)) nextDeny.push(tool);
+    }
   }
 
-  const changed =
-    deny.length !== nextDeny.length ||
-    deny.some((tool, index) => tool !== nextDeny[index]);
+  const changed = JSON.stringify(deny) !== JSON.stringify(nextDeny);
 
   if (!changed) {
     return {
@@ -122,19 +124,26 @@ function setCodexWebSearchDisabled(content: string): {
   content: string;
   changed: boolean;
 } {
-  const webSearchLine = /^web_search\s*=\s*("[^"]*"|'[^']*'|[^\r\n#]+).*$/m;
-
-  if (webSearchLine.test(content)) {
-    const next = content.replace(webSearchLine, CODEX_WEB_SEARCH_DISABLED);
-    return { content: next, changed: next !== content };
+  if (content.trim().length === 0) {
+    return { content: `${CODEX_WEB_SEARCH_DISABLED}\n`, changed: true };
   }
 
-  const prefix =
-    content.trim().length > 0 && !content.endsWith('\n') ? '\n' : '';
-  return {
-    content: `${content}${prefix}${CODEX_WEB_SEARCH_DISABLED}\n`,
-    changed: true,
-  };
+  const lines = content.split(/\r?\n/);
+  const firstTableIndex = lines.findIndex((line) => /^\s*\[/.test(line));
+  const rootEnd = firstTableIndex === -1 ? lines.length : firstTableIndex;
+
+  for (let index = 0; index < rootEnd; index += 1) {
+    if (/^\s*web_search\s*=/.test(lines[index])) {
+      if (lines[index] === CODEX_WEB_SEARCH_DISABLED) {
+        return { content, changed: false };
+      }
+      lines[index] = CODEX_WEB_SEARCH_DISABLED;
+      return { content: lines.join('\n'), changed: true };
+    }
+  }
+
+  lines.splice(rootEnd, 0, CODEX_WEB_SEARCH_DISABLED);
+  return { content: lines.join('\n'), changed: true };
 }
 
 function removeCodexWebSearchDisabled(content: string): {
@@ -142,9 +151,12 @@ function removeCodexWebSearchDisabled(content: string): {
   changed: boolean;
 } {
   const lines = content.split(/\r?\n/);
-  const nextLines = lines.filter(
-    (line) => !/^web_search\s*=\s*["']disabled["']\s*(#.*)?$/.test(line.trim())
-  );
+  const firstTableIndex = lines.findIndex((line) => /^\s*\[/.test(line));
+  const rootEnd = firstTableIndex === -1 ? lines.length : firstTableIndex;
+  const nextLines = lines.filter((line, index) => {
+    if (index >= rootEnd) return true;
+    return !/^web_search\s*=\s*["']disabled["']\s*(#.*)?$/.test(line.trim());
+  });
   const next = nextLines.join('\n').replace(/\n{3,}/g, '\n\n');
   return { content: next, changed: next !== content };
 }
