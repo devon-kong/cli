@@ -16,6 +16,11 @@ import {
   WORKFLOW_SKILL_REPOS,
 } from './skills-install';
 import { hasNpx, installSkillsNative } from './skills-native';
+import {
+  configureWebDefaults,
+  WEB_AGENTS,
+  type WebAgent,
+} from '../utils/web-defaults';
 
 export interface InitOptions {
   global?: boolean;
@@ -350,6 +355,10 @@ async function stepIntegrations(options: InitOptions): Promise<number | null> {
         name: 'Env — pull FIRECRAWL_API_KEY into local .env file',
         value: 'env',
       },
+      {
+        name: 'Default web — route web through Firecrawl (disable native web search/fetch in Claude Code/Codex)',
+        value: 'defaults',
+      },
     ],
   });
 
@@ -429,6 +438,37 @@ async function stepIntegrations(options: InitOptions): Promise<number | null> {
           console.log(`  ${green}✓${reset} .env updated`);
         } catch {
           console.error('  Failed to update .env. Run "firecrawl env" later.');
+        }
+        break;
+      }
+      case 'defaults': {
+        const harnesses = await checkbox<WebAgent>({
+          message: 'Set Firecrawl as the default web provider for:',
+          choices: WEB_AGENTS.map((agent) => ({
+            name: agent,
+            value: agent,
+            checked: true,
+          })),
+        });
+        if (harnesses.length === 0) {
+          console.log(`  ${dim}No harnesses selected — skipped.${reset}`);
+          break;
+        }
+        console.log(`\n  Configuring default web provider...`);
+        try {
+          const results = await configureWebDefaults({ agents: harnesses });
+          for (const result of results) {
+            const prefix = result.skipped
+              ? '!'
+              : result.changed
+                ? green + '✓' + reset
+                : dim + '•' + reset;
+            console.log(`  ${prefix} ${result.message}`);
+          }
+        } catch {
+          console.error(
+            '  Failed to set defaults. Run "firecrawl setup defaults" later.'
+          );
         }
         break;
       }
