@@ -5,12 +5,18 @@ import path from 'path';
 const CLAUDE_DENY_TOOLS = ['WebSearch', 'WebFetch'] as const;
 const CODEX_WEB_SEARCH_DISABLED = 'web_search = "disabled"';
 
+export type WebAgent = 'Claude Code' | 'Codex';
+
+export const WEB_AGENTS: readonly WebAgent[] = ['Claude Code', 'Codex'];
+
 export interface WebDefaultsOptions {
   undo?: boolean;
+  /** Limit configuration to these agents. Defaults to all agents. */
+  agents?: readonly WebAgent[];
 }
 
 export interface WebDefaultResult {
-  agent: 'Claude Code' | 'Codex';
+  agent: WebAgent;
   path: string;
   changed: boolean;
   skipped?: boolean;
@@ -197,8 +203,9 @@ export async function configureWebDefaults(
   options: WebDefaultsOptions = {}
 ): Promise<WebDefaultResult[]> {
   const undo = Boolean(options.undo);
-  return Promise.all([
-    configureClaudeDefaults(undo),
-    configureCodexDefaults(undo),
-  ]);
+  const selected = new Set<WebAgent>(options.agents ?? WEB_AGENTS);
+  const tasks: Promise<WebDefaultResult>[] = [];
+  if (selected.has('Claude Code')) tasks.push(configureClaudeDefaults(undo));
+  if (selected.has('Codex')) tasks.push(configureCodexDefaults(undo));
+  return Promise.all(tasks);
 }

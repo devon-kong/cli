@@ -56,15 +56,30 @@ describe('handleSetupCommand', () => {
   });
 
   it('configures Firecrawl as the default web provider', async () => {
-    await handleSetupCommand('defaults', {});
+    await handleSetupCommand('defaults', { yes: true });
 
-    expect(configureWebDefaults).toHaveBeenCalledWith({ undo: undefined });
+    expect(configureWebDefaults).toHaveBeenCalledWith({
+      undo: false,
+      agents: undefined,
+    });
   });
 
   it('undoes default web provider config', async () => {
-    await handleSetupCommand('defaults', { undo: true });
+    await handleSetupCommand('defaults', { undo: true, yes: true });
 
-    expect(configureWebDefaults).toHaveBeenCalledWith({ undo: true });
+    expect(configureWebDefaults).toHaveBeenCalledWith({
+      undo: true,
+      agents: undefined,
+    });
+  });
+
+  it('limits defaults config to a single agent', async () => {
+    await handleSetupCommand('defaults', { undo: true, agent: 'codex' });
+
+    expect(configureWebDefaults).toHaveBeenCalledWith({
+      undo: true,
+      agents: ['Codex'],
+    });
   });
 
   it('strips inherited npm_* env vars before nested npx calls', async () => {

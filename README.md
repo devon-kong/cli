@@ -57,10 +57,20 @@ firecrawl setup defaults
 ```
 
 This disables native web fetch/search where supported so agents route web work
-through Firecrawl. To undo those config changes:
+through Firecrawl. When run interactively, it asks harness by harness (Claude
+Code, Codex) so you can choose exactly which to change. Use `-y` to skip the
+picker and apply to all, or `--agent` to target one:
 
 ```bash
-firecrawl setup defaults --undo
+firecrawl setup defaults --agent codex      # only Codex
+firecrawl setup defaults -y                  # all harnesses, no prompts
+```
+
+To undo those config changes (also interactive, harness by harness):
+
+```bash
+firecrawl setup defaults --undo              # pick which to restore
+firecrawl setup defaults --undo --agent claude
 ```
 
 ## Quick Start
