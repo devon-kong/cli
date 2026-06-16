@@ -68,14 +68,14 @@ import { createCreateCommand } from './commands/create';
 initializeConfig();
 
 // Commands that require authentication.
-// NOTE: `scrape` and `search` are intentionally excluded — they fall back to
-// the keyless free tier (rate-limited per IP) when no API key is configured, so
-// they must not prompt for login. They still use a configured key when present.
+// NOTE: `scrape`, `search`, and `parse` are intentionally excluded — they fall
+// back to the keyless free tier (rate-limited per IP) when no API key is
+// configured, so they must not prompt for login. They still use a configured
+// key when present.
 const AUTH_REQUIRED_COMMANDS = [
   'download',
   'crawl',
   'map',
-  'parse',
   'feedback',
   'search-feedback',
   'agent',
