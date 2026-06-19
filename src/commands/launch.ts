@@ -37,6 +37,7 @@ const TARGETS: LaunchTarget[] = [
     aliases: ['claude', 'claude-code'],
     displayName: 'Claude Code',
     mcpAgent: 'claude-code',
+    skillsAgent: 'claude-code',
     command: 'claude',
     fallbackCommand: () => {
       const localClaude = path.join(os.homedir(), '.claude', 'local', 'claude');
@@ -63,12 +64,14 @@ const TARGETS: LaunchTarget[] = [
     aliases: ['codex'],
     displayName: 'Codex',
     mcpAgent: 'codex',
+    skillsAgent: 'codex',
     command: 'codex',
   },
   {
     aliases: ['codex-app', 'codex-desktop', 'codex-gui'],
     displayName: 'Codex App',
     mcpAgent: 'codex',
+    skillsAgent: 'codex',
     command: 'open',
     args: ['-b', 'com.openai.codex'],
     supportsExtraArgs: false,
@@ -84,6 +87,7 @@ const TARGETS: LaunchTarget[] = [
     aliases: ['opencode', 'open-code'],
     displayName: 'OpenCode',
     mcpAgent: 'opencode',
+    skillsAgent: 'opencode',
     command: 'opencode',
   },
   {

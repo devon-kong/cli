@@ -33,6 +33,10 @@ describe('handleLaunchCommand', () => {
       global: true,
       yes: true,
     });
+    expect(installSkillsForAgent).toHaveBeenCalledWith('claude-code', {
+      global: true,
+      yes: true,
+    });
     expect(spawnSync).not.toHaveBeenCalled();
   });
 
@@ -41,6 +45,7 @@ describe('handleLaunchCommand', () => {
     await handleLaunchCommand('codex', { config: true });
 
     expect(installMcp).toHaveBeenCalledTimes(2);
+    expect(installSkillsForAgent).toHaveBeenCalledTimes(2);
     expect(spawnSync).not.toHaveBeenCalled();
   });
 
@@ -52,6 +57,7 @@ describe('handleLaunchCommand', () => {
       global: true,
       yes: true,
     });
+    expect(installSkillsForAgent).not.toHaveBeenCalled();
     expect(spawnSync).toHaveBeenNthCalledWith(1, 'code', ['--version'], {
       stdio: 'ignore',
     });
@@ -71,6 +77,10 @@ describe('handleLaunchCommand', () => {
       global: true,
       yes: true,
     });
+    expect(installSkillsForAgent).toHaveBeenCalledWith('codex', {
+      global: true,
+      yes: true,
+    });
     expect(spawnSync).toHaveBeenNthCalledWith(
       2,
       'codex',
@@ -84,6 +94,10 @@ describe('handleLaunchCommand', () => {
 
     expect(installMcp).toHaveBeenCalledWith({
       agent: 'codex',
+      global: true,
+      yes: true,
+    });
+    expect(installSkillsForAgent).toHaveBeenCalledWith('codex', {
       global: true,
       yes: true,
     });
@@ -108,9 +122,20 @@ describe('handleLaunchCommand', () => {
     await handleLaunchCommand('opencode', { skipMcp: true });
 
     expect(installMcp).not.toHaveBeenCalled();
+    expect(installSkillsForAgent).toHaveBeenCalledWith('opencode', {
+      global: true,
+      yes: true,
+    });
     expect(spawnSync).toHaveBeenNthCalledWith(1, 'opencode', ['--version'], {
       stdio: 'ignore',
     });
+  });
+
+  it('can skip skills for a launch target that normally supports them', async () => {
+    await handleLaunchCommand('opencode', { skipMcp: true, skipSkills: true });
+
+    expect(installMcp).not.toHaveBeenCalled();
+    expect(installSkillsForAgent).not.toHaveBeenCalled();
   });
 
   it('configures Hermes MCP and skills, then launches Hermes Agent', async () => {
