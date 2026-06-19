@@ -4,6 +4,7 @@ import { mkdtempSync, readFileSync, rmSync } from 'fs';
 import os from 'os';
 import path from 'path';
 import {
+  handleMakeDefaultCommand,
   handleSetupCommand,
   installHermesMcp,
   installOpenClawMcp,
@@ -71,6 +72,15 @@ describe('handleSetupCommand', () => {
       'npx -y skills add firecrawl/firecrawl-workflows --full-depth --global --all',
       expect.objectContaining({ stdio: 'inherit' })
     );
+  });
+
+  it('configures Firecrawl as the default web provider via make default', async () => {
+    await handleMakeDefaultCommand({ yes: true });
+
+    expect(configureWebDefaults).toHaveBeenCalledWith({
+      undo: false,
+      agents: undefined,
+    });
   });
 
   it('installs the default setup bundle with --yes', async () => {

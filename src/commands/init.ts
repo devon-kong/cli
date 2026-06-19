@@ -233,6 +233,9 @@ function printNextSteps(
     );
   }
   console.log(
+    `  ${arrow} ${dim}Make default:${reset} ${bold}firecrawl make default${reset}`
+  );
+  console.log(
     `  ${arrow} ${dim}All commands:${reset} ${bold}firecrawl --help${reset}`
   );
   console.log('');
