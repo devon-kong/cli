@@ -21,6 +21,8 @@ import {
 
 export type SetupSubcommand = 'skills' | 'workflows' | 'mcp' | 'defaults';
 
+type SetupIntegration = SetupSubcommand;
+
 export interface SetupOptions {
   global?: boolean;
   agent?: string;
@@ -37,9 +39,14 @@ function shellQuote(value: string): string {
  * Main setup command handler
  */
 export async function handleSetupCommand(
-  subcommand: SetupSubcommand,
+  subcommand?: SetupSubcommand,
   options: SetupOptions = {}
 ): Promise<void> {
+  if (!subcommand) {
+    await handleSetupBundle(options);
+    return;
+  }
+
   switch (subcommand) {
     case 'skills':
       await installSkills(options, SKILL_REPOS);
@@ -70,6 +77,57 @@ export async function handleSetupCommand(
       );
       process.exit(1);
   }
+}
+
+async function handleSetupBundle(options: SetupOptions): Promise<void> {
+  let integrations: SetupIntegration[];
+
+  if (options.yes) {
+    integrations = ['skills', 'mcp'];
+  } else if (process.stdin.isTTY) {
+    integrations = await pickSetupIntegrations();
+  } else {
+    throw new Error(
+      'Setup subcommand is required in non-interactive mode. Use `firecrawl setup --yes` to install skills and MCP, or choose one of: skills, workflows, mcp, defaults.'
+    );
+  }
+
+  if (integrations.length === 0) {
+    console.log('No integrations selected. Nothing changed.');
+    return;
+  }
+
+  const bundleOptions = { ...options, global: options.global ?? true };
+  for (const integration of integrations) {
+    await handleSetupCommand(integration, bundleOptions);
+  }
+}
+
+async function pickSetupIntegrations(): Promise<SetupIntegration[]> {
+  const { checkbox } = await import('@inquirer/prompts');
+  return checkbox<SetupIntegration>({
+    message: 'What should Firecrawl set up?',
+    choices: [
+      {
+        name: 'Skills — install Firecrawl skills for AI coding agents',
+        value: 'skills',
+        checked: true,
+      },
+      {
+        name: 'MCP — install Firecrawl MCP server',
+        value: 'mcp',
+        checked: true,
+      },
+      {
+        name: 'Workflows — install Firecrawl workflow skills',
+        value: 'workflows',
+      },
+      {
+        name: 'Defaults — make Firecrawl the default web provider',
+        value: 'defaults',
+      },
+    ],
+  });
 }
 
 /** Map a user-supplied --agent value to a known web agent. */

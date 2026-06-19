@@ -63,6 +63,47 @@ describe('handleSetupCommand', () => {
     );
   });
 
+  it('installs the default setup bundle with --yes', async () => {
+    await handleSetupCommand(undefined, { yes: true });
+
+    expect(execSync).toHaveBeenCalledWith(
+      'npx -y skills add firecrawl/cli --full-depth --global --all',
+      expect.objectContaining({ stdio: 'inherit' })
+    );
+    expect(execSync).toHaveBeenCalledWith(
+      'npx -y skills add firecrawl/skills --full-depth --global --all',
+      expect.objectContaining({ stdio: 'inherit' })
+    );
+    expect(execSync).toHaveBeenCalledWith(
+      'npx -y add-mcp "npx -y firecrawl-mcp" --name firecrawl --env "FIRECRAWL_API_KEY=fc-test-key" --global --yes',
+      expect.objectContaining({
+        stdio: 'inherit',
+        env: expect.objectContaining({
+          FIRECRAWL_API_KEY: 'fc-test-key',
+        }),
+      })
+    );
+  });
+
+  it('requires a subcommand for bare setup in non-interactive mode', async () => {
+    const originalIsTty = process.stdin.isTTY;
+    Object.defineProperty(process.stdin, 'isTTY', {
+      configurable: true,
+      value: false,
+    });
+
+    try {
+      await expect(handleSetupCommand()).rejects.toThrow(
+        'Setup subcommand is required in non-interactive mode'
+      );
+    } finally {
+      Object.defineProperty(process.stdin, 'isTTY', {
+        configurable: true,
+        value: originalIsTty,
+      });
+    }
+  });
+
   it('configures Firecrawl as the default web provider', async () => {
     await handleSetupCommand('defaults', { yes: true });
 

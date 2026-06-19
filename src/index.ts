@@ -2174,8 +2174,8 @@ program
     'Set up individual firecrawl integrations (skills, workflows, mcp, defaults)'
   )
   .argument(
-    '<subcommand>',
-    'What to set up: "skills", "workflows", "mcp", or "defaults"'
+    '[subcommand]',
+    'What to set up: "skills", "workflows", "mcp", or "defaults"; omit for an interactive installer'
   )
   .option('-g, --global', 'Install globally (user-level)')
   .option(
@@ -2184,7 +2184,7 @@ program
   )
   .option(
     '-y, --yes',
-    'For "defaults": skip the interactive harness picker and apply to all'
+    'Skip prompts; for bare setup, install the default skills + MCP bundle'
   )
   .option(
     '--undo',
