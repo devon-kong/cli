@@ -2213,7 +2213,7 @@ program
     'Install Firecrawl MCP globally for the selected agent',
     true
   )
-  .option('-y, --yes', 'Skip MCP installer confirmation prompts', true)
+  .option('-y, --yes', 'Skip setup picker and installer confirmation prompts')
   .allowUnknownOption()
   .action(async (agent: string, args: string[], options) => {
     await handleLaunchCommand(agent, options, args);

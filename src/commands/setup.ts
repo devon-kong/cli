@@ -39,6 +39,24 @@ export interface SetupOptions {
   undo?: boolean;
   /** Skip the interactive harness picker and apply to all agents. */
   yes?: boolean;
+  /** Use the built-in skill installer instead of shelling out to npx skills. */
+  nativeSkills?: boolean;
+  /** Render compact skill install output. */
+  quiet?: boolean;
+}
+
+const green = '\x1b[32m';
+const dim = '\x1b[2m';
+const reset = '\x1b[0m';
+
+const SKILL_REPO_LABELS: Record<string, string> = {
+  'firecrawl/cli': 'Core CLI skills',
+  'firecrawl/skills': 'Build skills',
+  'firecrawl/firecrawl-workflows': 'Workflow skills',
+};
+
+function skillRepoLabel(repo: string): string {
+  return SKILL_REPO_LABELS[repo] ?? repo;
 }
 
 function shellQuote(value: string): string {
@@ -281,11 +299,33 @@ async function installSkills(
   repos: readonly string[]
 ): Promise<void> {
   for (const repo of repos) {
+    if (options.nativeSkills) {
+      try {
+        const result = await installSkillsNative(repo, {
+          agent: options.agent,
+          quiet: options.quiet,
+        });
+        if (options.quiet) {
+          console.log(
+            `  ${green}✓${reset} ${skillRepoLabel(repo)} ${dim}(${result.skillCount})${reset}`
+          );
+        }
+      } catch (error) {
+        console.error(
+          `Failed to install skills from ${repo}:`,
+          error instanceof Error ? error.message : 'Unknown error'
+        );
+        process.exit(1);
+      }
+      continue;
+    }
+
     if (hasNpx()) {
       const args = buildSkillsInstallArgs({
         repo,
         agent: options.agent,
         global: true,
+        yes: options.yes,
         includeNpxYes: true,
       });
 
@@ -379,13 +419,23 @@ async function installAddMcp(
   }
 
   const cmd = args.join(' ');
-  console.log(`Running: ${cmd}\n`);
+  if (!options.quiet) {
+    console.log(`Running: ${cmd}\n`);
+  }
 
   try {
     execSync(cmd, {
       stdio: 'inherit',
       env: cleanNpmEnv(),
     });
+    if (options.quiet) {
+      const target = resolvedAgent.agent
+        ? ` for ${resolvedAgent.agent}`
+        : resolvedAgent.all
+          ? ' for launch integrations'
+          : '';
+      console.log(`  ${green}✓${reset} Firecrawl MCP configured${target}`);
+    }
   } catch {
     process.exit(1);
   }

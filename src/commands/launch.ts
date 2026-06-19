@@ -9,6 +9,7 @@ import {
   installOpenClawMcp,
   installSkillsForAgent,
 } from './setup';
+import { ALL_SKILL_REPOS } from './skills-install';
 
 export interface LaunchOptions {
   config?: boolean;
@@ -31,6 +32,8 @@ interface LaunchTarget {
   supportsExtraArgs?: boolean;
   fallbackCommand?: () => { command: string; args: string[] } | null;
 }
+
+type LaunchSetupMode = 'both' | 'mcp' | 'skills';
 
 const TARGETS: LaunchTarget[] = [
   {
@@ -163,6 +166,32 @@ async function pickLaunchTarget(): Promise<LaunchTarget> {
   );
 }
 
+async function pickLaunchSetupMode(
+  target: LaunchTarget
+): Promise<LaunchSetupMode> {
+  const { select } = await import('@inquirer/prompts');
+  return select<LaunchSetupMode>({
+    message: `Configure Firecrawl for ${target.displayName}`,
+    choices: [
+      {
+        name: 'MCP + CLI skills',
+        value: 'both',
+        description: 'Configure tools and install all Firecrawl skills',
+      },
+      {
+        name: 'MCP only',
+        value: 'mcp',
+        description: 'Only configure the Firecrawl MCP server',
+      },
+      {
+        name: 'CLI skills only',
+        value: 'skills',
+        description: 'Only install Firecrawl skills for this agent',
+      },
+    ],
+  });
+}
+
 function commandExists(command: string): boolean {
   const result = spawnSync(command, ['--version'], { stdio: 'ignore' });
   return (
@@ -216,23 +245,47 @@ export async function handleLaunchCommand(
     );
   }
 
-  if (!options.skipMcp) {
+  const targetSupportsMcp = Boolean(target.mcpInstaller || target.mcpAgent);
+  const targetSupportsSkills = Boolean(target.skillsAgent);
+  let installMcpForTarget = targetSupportsMcp && !options.skipMcp;
+  let installSkillsForTarget = targetSupportsSkills && !options.skipSkills;
+
+  if (
+    installMcpForTarget &&
+    installSkillsForTarget &&
+    !options.yes &&
+    process.stdin.isTTY
+  ) {
+    const setupMode = await pickLaunchSetupMode(target);
+    installMcpForTarget = setupMode === 'both' || setupMode === 'mcp';
+    installSkillsForTarget = setupMode === 'both' || setupMode === 'skills';
+  }
+
+  if (installMcpForTarget) {
     if (target.mcpInstaller) {
       await target.mcpInstaller();
     } else if (target.mcpAgent) {
       await installMcp({
         agent: target.mcpAgent,
         global: options.global !== false,
-        yes: options.yes ?? true,
+        yes: true,
+        quiet: true,
       });
     }
   }
 
-  if (target.skillsAgent && !options.skipSkills) {
-    await installSkillsForAgent(target.skillsAgent, {
-      global: options.global !== false,
-      yes: options.yes ?? true,
-    });
+  if (target.skillsAgent && installSkillsForTarget) {
+    console.log(`Installing Firecrawl skills for ${target.displayName}...`);
+    await installSkillsForAgent(
+      target.skillsAgent,
+      {
+        global: options.global !== false,
+        yes: true,
+        nativeSkills: true,
+        quiet: true,
+      },
+      ALL_SKILL_REPOS
+    );
   }
 
   if (options.config || options.install || options.setup) {
