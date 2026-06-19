@@ -57,7 +57,7 @@ import {
   findTemplate,
   stepAuth,
 } from './commands/init';
-import { handleSetupCommand } from './commands/setup';
+import { handleMakeDefaultCommand, handleSetupCommand } from './commands/setup';
 import type { SetupSubcommand } from './commands/setup';
 import { handleEnvPullCommand } from './commands/env';
 import { handleStatusCommand } from './commands/status';
@@ -66,6 +66,7 @@ import { isUrl, normalizeUrl } from './utils/url';
 import { parseScrapeOptions } from './utils/options';
 import { isJobId } from './utils/job';
 import { ensureAuthenticated, printBanner } from './utils/auth';
+import { maybeShowUpdateNotice } from './utils/update-notice';
 import packageJson from '../package.json';
 import type { SearchSource, SearchCategory } from './types/search';
 import type { ScrapeFormat } from './types/scrape';
@@ -2195,6 +2196,27 @@ program
   });
 
 program
+  .command('make')
+  .description('Make Firecrawl the default provider for supported workflows')
+  .argument('<target>', 'What to make default: "default"')
+  .option(
+    '--undo',
+    'Undo default provider config by re-enabling native web tools where supported'
+  )
+  .action(async (target, options) => {
+    if (target !== 'default') {
+      console.error(`Unknown make target: ${target}`);
+      console.log('\nAvailable targets:');
+      console.log(
+        '  default    Make Firecrawl the default web provider for supported AI agents'
+      );
+      process.exit(1);
+    }
+
+    await handleMakeDefaultCommand(options);
+  });
+
+program
   .command('launch')
   .alias('launcher')
   .description('Configure Firecrawl MCP for an AI agent, then launch it')
@@ -2331,6 +2353,8 @@ async function main() {
     await handleStatusCommand();
     return;
   }
+
+  await maybeShowUpdateNotice();
 
   // If no arguments or just help flags, check auth and show appropriate message
   if (args.length === 0) {
