@@ -79,4 +79,23 @@ describe('handleLaunchCommand', () => {
       stdio: 'ignore',
     });
   });
+
+  it('requires an explicit target in non-interactive mode', async () => {
+    const originalIsTty = process.stdin.isTTY;
+    Object.defineProperty(process.stdin, 'isTTY', {
+      configurable: true,
+      value: false,
+    });
+
+    try {
+      await expect(handleLaunchCommand()).rejects.toThrow(
+        'Launch target is required in non-interactive mode'
+      );
+    } finally {
+      Object.defineProperty(process.stdin, 'isTTY', {
+        configurable: true,
+        value: originalIsTty,
+      });
+    }
+  });
 });

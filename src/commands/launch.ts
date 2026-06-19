@@ -1,6 +1,7 @@
 import { existsSync } from 'fs';
 import os from 'os';
 import path from 'path';
+import readline from 'readline';
 import { spawnSync } from 'child_process';
 import { installMcp } from './setup';
 
@@ -63,9 +64,60 @@ const TARGETS: LaunchTarget[] = [
   },
 ];
 
-function findTarget(name: string): LaunchTarget | undefined {
+function findTarget(name: string | undefined): LaunchTarget | undefined {
+  if (!name) return undefined;
   const normalized = name.trim().toLowerCase();
   return TARGETS.find((target) => target.aliases.includes(normalized));
+}
+
+function supportedTargets(): string {
+  return TARGETS.flatMap((candidate) => candidate.aliases)
+    .filter((alias, index, aliases) => aliases.indexOf(alias) === index)
+    .join(', ');
+}
+
+function promptInput(question: string): Promise<string> {
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+  return new Promise((resolve) => {
+    rl.question(question, (answer: string) => {
+      rl.close();
+      resolve(answer.trim());
+    });
+  });
+}
+
+async function pickLaunchTarget(): Promise<LaunchTarget> {
+  if (!process.stdin.isTTY) {
+    throw new Error(
+      `Launch target is required in non-interactive mode. Supported: ${supportedTargets()}`
+    );
+  }
+
+  console.log('Choose an app to configure and launch:');
+  TARGETS.forEach((target, index) => {
+    console.log(`  ${index + 1}. ${target.displayName}`);
+  });
+  console.log('');
+
+  const answer = await promptInput('Launch app: ');
+  const byNumber = Number.parseInt(answer, 10);
+  if (
+    Number.isInteger(byNumber) &&
+    byNumber >= 1 &&
+    byNumber <= TARGETS.length
+  ) {
+    return TARGETS[byNumber - 1];
+  }
+
+  const target = findTarget(answer);
+  if (target) return target;
+
+  throw new Error(
+    `Unknown launch target "${answer}". Supported: ${supportedTargets()}`
+  );
 }
 
 function commandExists(command: string): boolean {
@@ -100,17 +152,20 @@ function resolveLaunchCommand(
 }
 
 export async function handleLaunchCommand(
-  targetName: string,
+  targetName?: string,
   options: LaunchOptions = {},
   extraArgs: string[] = []
 ): Promise<void> {
-  const target = findTarget(targetName);
-  if (!target) {
-    const supported = TARGETS.flatMap((candidate) => candidate.aliases)
-      .filter((alias, index, aliases) => aliases.indexOf(alias) === index)
-      .join(', ');
+  if (!targetName && extraArgs.length > 0) {
     throw new Error(
-      `Unknown launch target "${targetName}". Supported: ${supported}`
+      'Extra launch arguments require an explicit launch target.'
+    );
+  }
+
+  const target = targetName ? findTarget(targetName) : await pickLaunchTarget();
+  if (!target) {
+    throw new Error(
+      `Unknown launch target "${targetName}". Supported: ${supportedTargets()}`
     );
   }
 

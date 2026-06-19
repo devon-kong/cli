@@ -2196,10 +2196,11 @@ program
 
 program
   .command('launch')
+  .alias('launcher')
   .description('Configure Firecrawl MCP for an AI agent, then launch it')
   .argument(
-    '<agent>',
-    'Agent to launch: claude, code, vscode, codex, or opencode'
+    '[agent]',
+    'Agent to launch: claude, code, vscode, codex, or opencode; omit for an interactive picker'
   )
   .argument('[args...]', 'Extra arguments passed to the launched agent')
   .option('--install', 'Install Firecrawl MCP without launching')
