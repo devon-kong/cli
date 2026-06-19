@@ -84,10 +84,10 @@ describe('update notice', () => {
     });
 
     expect(getLatestVersion).not.toHaveBeenCalled();
+    // The notice colorizes "Update available!" with ANSI codes on a TTY, so
+    // assert on the (uncolorized) version portion that survives formatting.
     expect(write).toHaveBeenCalledWith(
-      expect.stringContaining(
-        `Update available! ${packageJson.version} -> 99.99.99`
-      )
+      expect.stringContaining(`${packageJson.version} -> 99.99.99`)
     );
   });
 
