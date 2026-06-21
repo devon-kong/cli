@@ -21,10 +21,15 @@ Bulk-extract content from a website, following links up to a depth/page limit. R
 ## Recommended command
 
 ```bash
-firecrawl crawl "<url>" --include-paths /docs --limit 50 --wait --progress -o .firecrawl/crawl.json
+firecrawl crawl "<url>" --include-paths /docs --limit 30 --wait --progress --timeout 240 -o .firecrawl/crawl.json
 ```
 
-Always pair `--wait` with `--progress`. `--progress` polls reliably, honors `--timeout`, and returns the page content. (Plain `--wait` *without* `--progress` can hang indefinitely against a self-hosted server — always include `--progress`.)
+Always pair `--wait` with `--progress`, **and always set a `--timeout`**. `--progress` polls reliably, honors `--timeout`, and returns the page content. Two ways this hangs an agent otherwise: plain `--wait` *without* `--progress` waits forever on self-hosted; `--wait --progress` *without* `--timeout` polls forever if the crawl never reaches `completed`. Size `--timeout` to the crawl — per-page budget and an auto-sizing command are in **[reference.md](reference.md)**.
+
+## Mode selection (agents)
+
+- **Small, scoped crawl (`--limit ≤ 30`)** → bounded synchronous: the command above.
+- **`--limit > 30`, a slow/unknown site, or `--max-depth ≥ 3` with many pages** → **don't just raise `--timeout`** (when it fires it throws away the pages already fetched). **Scope down** with `--include-paths` and split into ≤30-page batches. True fire-and-forget against self-hosted is a separate, non-autonomous flow → **[reference.md](reference.md)**.
 
 ## Common options
 
@@ -47,6 +52,9 @@ Crawl output can be large — write with `-o` and inspect with `grep`/`head`; do
 ## Don'ts
 
 - ❌ **Don't run bare `firecrawl crawl <url> --wait`** (without `--progress`) — on self-hosted it hangs forever and ignores `--timeout`. Always add `--progress`.
+- ❌ **Don't run `--wait --progress` without `--timeout`** — it polls forever if the crawl never reaches `completed`, hanging the agent session. Always bound it.
+- ❌ **Don't set a small `--timeout` for a large crawl** — when it fires, the CLI exits before writing results and the already-fetched pages are lost (empty `-o` file). Scope down / batch instead.
+- ❌ **Don't use `--max-concurrency` to speed up a self-hosted crawl** — measured ≈ no gain (the bottleneck is server-side scheduling); use it only to *reduce* load.
 - ❌ **Don't re-crawl a site to get an already-submitted job's content** — `firecrawl crawl <jobId>` returns status only; fetch the content via the raw API (**[reference.md](reference.md)**).
 - ❌ **Don't hardcode the API host/port or echo the API key** — read both from `credentials.json` (see reference.md).
 
